@@ -2,100 +2,156 @@
 
 ## Overview
 
-This repository contains a modular framework for building reproducible scientific data pipelines. The goal of this project is not to implement a single biological analysis, but to define a consistent architecture for organizing, executing, documenting, and reproducing computational workflows across multiple scientific domains.
+This repository implements a modular, configuration-driven framework for building reproducible scientific data pipelines.
 
-This framework is intended to support projects in genomics, transcriptomics, variant annotation, rare disease analysis, and clinical data harmonization.
+The purpose of this project is not to solve a single biological problem, but to define a **generalizable architecture** for:
+
+- organizing computational workflows  
+- enforcing reproducibility  
+- separating configuration from execution  
+- standardizing data flow across pipeline stages  
+
+This framework is designed to support downstream projects in:
+
+- variant annotation  
+- RNA-seq analysis  
+- rare disease gene prioritization  
+- clinical data harmonization  
+
+This repository includes a fully operational demonstration pipeline that can be executed end-to-end.
 
 ---
 
-## Goals
+## Key Features
 
-The framework aims to make scientific pipelines:
-
-- Reproducible
-- Modular
-- Transparent
-- Well documented
-- Easy to extend
-- Easy to rerun on new data
-- Easy for other researchers to understand
+- Configuration-driven execution (YAML-based)
+- Modular stage-based pipeline design
+- Strict separation of code, data, and outputs
+- Run-specific output directories
+- Automatic logging and metadata tracking
+- Reproducible execution with config snapshots
+- Minimal dependency footprint
 
 ---
 
-## Core Ideas
+## Working Example Pipeline
 
-A scientific pipeline should clearly define:
+This repository includes a fully operational six-stage demonstration pipeline.
 
-1. What inputs are required
-2. What transformations occur
-3. What intermediate files are produced
-4. What final outputs are generated
-5. What assumptions are made
-6. How the analysis can be rerun
+Each stage operates on a shared state object, enabling explicit data flow between stages without reliance on global variables.
 
-This repository defines conventions and example implementations for organizing pipelines in a consistent way.
+### Pipeline Stages
+
+1. Load Data  
+2. Validate Data  
+3. Clean Data  
+4. Transform / Annotate Data  
+5. Analyze / Prioritize Variants  
+6. Write Summary Outputs  
 
 ---
 
 ## Repository Structure
 
-Typical pipeline projects using this framework should follow a structure similar to:
-project/
-├── data
-│   ├── interim
-│   ├── processed
-│   └── raw
-├── docs
-│   ├── architecture.md
-│   ├── data_schema.md
-│   ├── notes.md
-│   └── workflow.md
-├── environment
-│   └── README.md
-├── results
-│   ├── figures
-│   └── tables
-├── scripts
-│   └── README.md
-├── src
-│   └── __init__.py
-└── tests
+    reproducible_pipeline_framework/
+    ├── config/
+    │   └── config.yaml
+    ├── data/
+    │   ├── example/
+    │   ├── interim/
+    │   ├── processed/
+    │   └── raw/
+    ├── docs/
+    ├── pipeline/
+    ├── src/
+    ├── results/
+    │   └── runs/
+    ├── run_pipeline.py
+    ├── requirements.txt
     └── README.md
 
+---
 
-Each directory has a specific purpose and should not be used interchangeably.
+## Quick Start
+
+From the repository root:
+
+### Create virtual environment
+
+    python3 -m venv .venv
+    source .venv/bin/activate
+
+### Install dependencies
+
+    pip install -r requirements.txt
+
+### Run pipeline
+
+    python run_pipeline.py --config config/config.yaml
 
 ---
 
-## Pipeline Philosophy
+## Pipeline Execution Flow
 
-Pipelines should be organized as a series of clearly defined steps:
-Input Data → Validation → Processing → Annotation → Analysis → Output Tables → Figures
-
-
-Each step should:
-
-- Have defined inputs
-- Produce defined outputs
-- Log its execution
-- Be runnable independently where possible
+VCF → Load → Validate → Clean → Annotate → Filter → Report
 
 ---
 
-## Intended Use
+## Example Outputs
 
-This framework will be used to support the following portfolio projects:
+Each run generates:
 
-- variant_annotation_pipeline
-- rnaseq_pipeline
-- rare_disease_gene_prioritization
-- picu_harmonization
-- future data integration projects
+    results/runs/run_YYYY_MM_DD_HHMMSS/
+
+Including:
+
+- logs/pipeline.log  
+- metadata.json  
+- config_used.yaml  
+- final/prioritized_variants.tsv  
+- reports/pipeline_summary.txt  
 
 ---
 
-## Status
+## Reproducibility Model
 
-This framework is under active development and will evolve as additional pipelines are built and lessons are learned from those projects.
+Each run directory contains all artifacts required to reproduce the analysis independently.
 
-The long-term goal is to establish a reusable structure for scientific computing projects that balances biological complexity with software engineering best practices.
+- configuration-driven  
+- fully logged  
+- self-contained  
+- reproducible  
+
+---
+
+## Design Philosophy
+
+- Explicit over implicit  
+- Configuration over hardcoding  
+- Modular over monolithic  
+- Reproducible over ad hoc  
+
+---
+
+## Current Status
+
+Version 1 comprises:
+
+- a complete scaffold  
+- a working six-stage pipeline  
+- a reproducible execution state  
+
+Version 1 is fully operational and supports end-to-end execution of the demonstration pipeline.
+
+---
+
+## Notes
+
+- Placeholder annotation logic  
+- Not for clinical use  
+
+---
+
+## License
+
+See LICENSE file
