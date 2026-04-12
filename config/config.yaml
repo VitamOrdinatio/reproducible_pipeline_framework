@@ -1,0 +1,75 @@
+project:
+  name: reproducible_pipeline_framework
+  pipeline_name: variant_interpretation_example
+  version: 0.1.0
+
+run:
+  run_name_prefix: run
+  timestamp_format: "%Y_%m_%d_%H%M%S"
+  use_example_data: true
+  fail_fast: true
+
+paths:
+  input_vcf: data/example/example_variants.vcf
+  example_input_vcf: data/example/example_variants.vcf
+  interim_dir: data/interim
+  processed_dir: data/processed
+  results_root: results/runs
+
+logging:
+  level: INFO
+  log_filename: pipeline.log
+  log_to_console: true
+
+stages:
+  load_data: true
+  validate_data: true
+  clean_data: true
+  transform_data: true
+  analyze_data: true
+  write_summary: true
+
+validation:
+  required_columns:
+    - chromosome
+    - position
+    - reference_allele
+    - alternate_allele
+  allow_missing_values: false
+
+cleaning:
+  normalize_chromosome_prefix: true
+  drop_malformed_rows: true
+  drop_duplicate_variants: true
+
+annotation:
+  annotation_source: placeholder
+  add_gene_symbol: true
+  add_consequence: true
+  add_clinical_annotation: true
+
+filtering:
+  protein_coding_only: true
+  high_impact_only: false
+  require_annotation: true
+  allowed_consequences:
+    - missense
+    - nonsense
+    - frameshift
+    - splice_site
+
+outputs:
+  write_interim_table: true
+  write_processed_table: true
+  write_final_table: true
+  write_summary_report: true
+  interim_filename: cleaned_variants.tsv
+  processed_filename: annotated_variants.tsv
+  final_filename: prioritized_variants.tsv
+  summary_report_filename: pipeline_summary.txt
+
+metadata:
+  write_metadata_json: true
+  metadata_filename: metadata.json
+  save_config_snapshot: true
+  config_snapshot_filename: config_used.yaml

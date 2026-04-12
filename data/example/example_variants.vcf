@@ -1,0 +1,8 @@
+##fileformat=VCFv4.2
+##source=example_pipeline
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+1	123456	.	A	G	50	PASS	.
+1	123789	.	C	T	60	PASS	.
+2	987654	.	G	A	20	q10	.
+2	555000	.	T	C	90	PASS	.
+X	111111	.	G	T	70	PASS	.
