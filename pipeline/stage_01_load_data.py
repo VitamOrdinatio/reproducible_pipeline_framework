@@ -1,13 +1,16 @@
 """
-Stage 01: Load variant data from a VCF file.
+Stage 01: Load input data for Version 2.
 
-Version 1 responsibilities:
-- select the active input VCF path from state
-- confirm the file exists
-- parse a minimal VCF structure
-- convert records into a pandas DataFrame
-- store the DataFrame in state
-- record basic stage outputs and counts
+Version 2 responsibilities:
+- validate execution mode
+- validate required input file paths for the active mode
+- initialize input-related state summaries
+- record basic input QC
+- avoid heavy parsing at this stage
+
+This stage supports:
+- full_pipeline mode (FASTQ input)
+- annotation_only mode (VCF input)
 """
 
 from __future__ import annotations
@@ -15,135 +18,122 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import pandas as pd
 
-
-VCF_COLUMNS = [
-    "chromosome",
-    "position",
-    "variant_id",
-    "reference_allele",
-    "alternate_allele",
-    "quality",
-    "filter",
-    "info",
-]
-
-
-def parse_vcf(vcf_path: Path) -> pd.DataFrame:
+def validate_file_exists(path_str: str | None, label: str) -> dict[str, Any]:
     """
-    Parse a minimal VCF file into a pandas DataFrame.
+    Validate that a required file exists.
 
     Parameters
     ----------
-    vcf_path : Path
-        Path to the input VCF file.
+    path_str : str | None
+        File path as a string.
+    label : str
+        Human-readable label for error messages and summaries.
 
     Returns
     -------
-    pd.DataFrame
-        Parsed variant records.
+    dict[str, Any]
+        Summary dictionary describing the file check.
 
     Raises
     ------
     ValueError
-        If no variant records are found or rows are malformed.
+        If the path is missing.
+    FileNotFoundError
+        If the file does not exist.
     """
-    records: list[list[Any]] = []
+    if not path_str:
+        raise ValueError(f"Missing required input path for: {label}")
 
-    with vcf_path.open("r", encoding="utf-8") as handle:
-        for line in handle:
-            line = line.strip()
+    path = Path(path_str)
 
-            if not line:
-                continue
+    if not path.exists():
+        raise FileNotFoundError(f"Required input file not found for {label}: {path}")
 
-            if line.startswith("##"):
-                continue
+    if not path.is_file():
+        raise ValueError(f"Input path is not a file for {label}: {path}")
 
-            if line.startswith("#CHROM"):
-                continue
-
-            fields = line.split("\t")
-            if len(fields) < 8:
-                raise ValueError(f"Malformed VCF row with fewer than 8 columns: {line}")
-
-            record = [
-                fields[0],
-                int(fields[1]),
-                fields[2],
-                fields[3],
-                fields[4],
-                fields[5],
-                fields[6],
-                fields[7],
-            ]
-            records.append(record)
-
-    if not records:
-        raise ValueError(f"No variant records found in VCF: {vcf_path}")
-
-    dataframe = pd.DataFrame(records, columns=VCF_COLUMNS)
-    return dataframe
+    return {
+        "label": label,
+        "path": str(path),
+        "exists": True,
+        "size_bytes": path.stat().st_size,
+    }
 
 
 def run_stage(
     config: dict[str, Any],
-    paths: dict[str, Path],
+    paths: dict[str, Path | str],
     logger,
     state: dict[str, Any],
 ) -> dict[str, Any]:
     """
-    Execute Stage 01: load variant data.
+    Execute Stage 01: load input data context.
 
     Parameters
     ----------
     config : dict[str, Any]
         Parsed pipeline configuration.
-    paths : dict[str, Path]
-        Resolved run-specific paths.
+    paths : dict[str, Path | str]
+        Resolved run paths.
     logger : logging.Logger
         Configured pipeline logger.
     state : dict[str, Any]
-        Shared pipeline state.
+        Shared nested v2 pipeline state.
 
     Returns
     -------
     dict[str, Any]
-        Updated pipeline state.
+        Updated state.
 
     Raises
     ------
-    FileNotFoundError
-        If the selected input VCF does not exist.
     ValueError
-        If the VCF cannot be parsed or contains no records.
+        If required state keys are missing or mode is invalid.
+    FileNotFoundError
+        If required input files do not exist.
     """
-    input_vcf_path = Path(state["input_vcf_path"])
+    logger.info("Stage 01: loading input data context.")
 
-    logger.info("Stage 01: loading variant data.")
-    logger.info(f"Input VCF path: {input_vcf_path}")
+    if "run" not in state or "inputs" not in state or "qc" not in state:
+        raise ValueError("Stage 01 requires state sections: 'run', 'inputs', and 'qc'.")
 
-    if not input_vcf_path.exists():
-        raise FileNotFoundError(f"Input VCF file not found: {input_vcf_path}")
+    execution_mode = state["run"]["mode"]
+    input_qc: dict[str, Any] = {
+        "mode": execution_mode,
+        "files_checked": [],
+    }
 
-    if not input_vcf_path.is_file():
-        raise ValueError(f"Input VCF path is not a file: {input_vcf_path}")
+    if execution_mode == "full_pipeline":
+        logger.info("Stage 01 operating in full_pipeline mode.")
 
-    variants_df = parse_vcf(input_vcf_path)
+        fastq_1_summary = validate_file_exists(state["inputs"].get("fastq_1"), "FASTQ R1")
+        fastq_2_summary = validate_file_exists(state["inputs"].get("fastq_2"), "FASTQ R2")
 
-    row_count = len(variants_df)
-    column_count = len(variants_df.columns)
+        input_qc["files_checked"].append(fastq_1_summary)
+        input_qc["files_checked"].append(fastq_2_summary)
+        input_qc["files_found"] = True
 
-    logger.info(f"Loaded {row_count} variant records.")
-    logger.info(f"Detected {column_count} columns.")
+        logger.info(f"Validated FASTQ R1: {fastq_1_summary['path']}")
+        logger.info(f"Validated FASTQ R2: {fastq_2_summary['path']}")
 
-    state["raw_variants_df"] = variants_df
-    state["stage_outputs"]["load_data"] = {
-        "input_vcf_path": str(input_vcf_path),
-        "row_count": row_count,
-        "column_count": column_count,
-        "columns": list(variants_df.columns),
+    elif execution_mode == "annotation_only":
+        logger.info("Stage 01 operating in annotation_only mode.")
+
+        vcf_summary = validate_file_exists(state["inputs"].get("input_vcf"), "input VCF")
+        input_qc["files_checked"].append(vcf_summary)
+        input_qc["files_found"] = True
+
+        logger.info(f"Validated input VCF: {vcf_summary['path']}")
+
+    else:
+        raise ValueError(f"Unsupported execution mode encountered in Stage 01: {execution_mode}")
+
+    state["qc"]["input_qc"] = input_qc
+    state["stage_outputs"]["stage_01_load_data"] = {
+        "status": "success",
+        "mode": execution_mode,
+        "files_checked": input_qc["files_checked"],
     }
 
     return state
@@ -152,22 +142,19 @@ def run_stage(
 if __name__ == "__main__":
     import logging
 
-    from src.config_loader import get_input_vcf_path, load_config, validate_config_paths
+    from src.config_loader import load_config, validate_config
     from src.path_manager import initialize_run_paths
+    from src.pipeline_runner import initialize_state
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
     test_logger = logging.getLogger("stage_01_test")
 
     test_config = load_config("config/config.yaml")
-    validate_config_paths(test_config)
+    validate_config(test_config)
     test_paths = initialize_run_paths(test_config)
-
-    test_state = {
-        "input_vcf_path": get_input_vcf_path(test_config),
-        "stage_outputs": {},
-    }
+    test_state = initialize_state(test_config, "config/config.yaml", test_paths)
 
     updated_state = run_stage(test_config, test_paths, test_logger, test_state)
 
     print("Stage 01 completed successfully.")
-    print(updated_state["stage_outputs"]["load_data"])
+    print(updated_state["stage_outputs"]["stage_01_load_data"])

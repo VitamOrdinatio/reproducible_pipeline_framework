@@ -1,20 +1,60 @@
 project:
   name: reproducible_pipeline_framework
-  pipeline_name: variant_interpretation_example
-  version: 0.1.0
+  pipeline_name: variant_discovery_dual_track_example
+  version: 2.0.0
 
 run:
   run_name_prefix: run
   timestamp_format: "%Y_%m_%d_%H%M%S"
-  use_example_data: true
   fail_fast: true
+  use_example_data: true
+
+mode:
+  execution_mode: full_pipeline
+  supported_modes:
+    - full_pipeline
+    - annotation_only
+
+sample:
+  sample_id: toy_sample_01
+  cohort_id: null
+  assay_type: WGS
+  reference_genome: GRCh38
 
 paths:
+  fastq_1: data/example/example_R1.fastq
+  fastq_2: data/example/example_R2.fastq
   input_vcf: data/example/example_variants.vcf
-  example_input_vcf: data/example/example_variants.vcf
+
+  raw_dir: data/raw
   interim_dir: data/interim
   processed_dir: data/processed
   results_root: results/runs
+
+references:
+  reference_genome_fasta: data/example/reference/GRCh38_mock.fa
+  annotation_source_name: annovar_placeholder
+  gene_model_source: refseq_placeholder
+
+resources:
+  population_frequency_sources:
+    - gnomad
+    - exac
+    - one_thousand_genomes
+  clinical_annotation_sources:
+    - clinvar
+  ai_annotation_sources:
+    - alphamissense
+    - spliceai
+  optional_ai_sources:
+    - alphagenome
+
+tools:
+  alignment_tool: bwa_mem_placeholder
+  bam_processing_tool: samtools_placeholder
+  variant_calling_tool: gatk_haplotypecaller_placeholder
+  annotation_tool: annovar_placeholder
+  validation_tool: igv_placeholder
 
 logging:
   level: INFO
@@ -22,55 +62,117 @@ logging:
   log_to_console: true
 
 stages:
-  load_data: true
-  validate_data: true
-  clean_data: true
-  transform_data: true
-  analyze_data: true
-  write_summary: true
+  stage_01_load_data: true
+  stage_02_align_data: true
+  stage_03_process_bam: true
+  stage_04_qc_aligned_reads: true
+  stage_05_call_variants: true
+  stage_06_normalize_vcf: true
+  stage_07_annotate_variants: true
+  stage_08_filter_and_partition: true
+  stage_09_interpret_coding: true
+  stage_10_interpret_noncoding: true
+  stage_11_prioritize_variants: true
+  stage_12_validate_variants: true
+  stage_13_write_summary: true
 
 validation:
-  required_columns:
+  require_input_files: true
+  allow_missing_values: false
+  required_vcf_columns:
     - chromosome
     - position
     - reference_allele
     - alternate_allele
-  allow_missing_values: false
 
-cleaning:
+alignment:
+  create_mock_bam: true
+  record_mapping_rate: true
+
+bam_processing:
+  create_mock_sorted_bam: true
+  create_mock_bam_index: true
+
+variant_calling:
+  create_mock_raw_vcf: true
+  emit_snv: true
+  emit_indel: true
+
+vcf_normalization:
   normalize_chromosome_prefix: true
   drop_malformed_rows: true
   drop_duplicate_variants: true
 
 annotation:
-  annotation_source: placeholder
+  create_mock_annotations: true
   add_gene_symbol: true
+  add_variant_type: true
   add_consequence: true
   add_clinical_annotation: true
+  add_population_frequency: true
+  add_alphamissense_score: true
+  add_spliceai_score: true
+  add_variant_classification: true
 
 filtering:
-  protein_coding_only: true
-  high_impact_only: false
+  apply_af_filtering: true
   require_annotation: true
-  allowed_consequences:
+  coding_af_threshold: 0.001
+  noncoding_af_threshold: 0.01
+  coding_consequences:
     - missense
     - nonsense
     - frameshift
     - splice_site
+    - synonymous
+  noncoding_consequences:
+    - intronic
+    - intergenic
+    - regulatory
 
-af_thresholds:
-  coding: 0.001
-  noncoding: 0.01
+interpretation:
+  coding:
+    use_clinvar: true
+    use_alphamissense: true
+    use_spliceai: true
+    prioritize_known_pathogenic: true
+  noncoding:
+    use_spliceai: true
+    use_alphagenome: false
+    prioritize_splice_relevant: true
+    prioritize_regulatory_candidates: true
+
+prioritization:
+  combine_coding_and_noncoding_tracks: true
+  rank_by_clinical_annotation: true
+  rank_by_population_frequency: true
+  rank_by_ai_support: true
+
+validation_step:
+  enable_validation: true
+  create_mock_validation_notes: true
 
 outputs:
-  write_interim_table: true
-  write_processed_table: true
+  write_interim_artifacts: true
+  write_processed_artifacts: true
   write_final_table: true
   write_summary_report: true
-  interim_filename: cleaned_variants.tsv
-  processed_filename: annotated_variants.tsv
-  final_filename: prioritized_variants.tsv
+
+  aligned_bam_filename: aligned.bam
+  sorted_bam_filename: aligned.sorted.bam
+  bam_index_filename: aligned.sorted.bam.bai
+  raw_vcf_filename: raw_variants.vcf
+  normalized_vcf_filename: normalized_variants.vcf
+  annotated_vcf_filename: annotated_variants.vcf
+  annotated_table_filename: annotated_variants.tsv
+  coding_track_filename: coding_track.tsv
+  noncoding_track_filename: noncoding_track.tsv
+  interpreted_coding_filename: interpreted_coding.tsv
+  interpreted_noncoding_filename: interpreted_noncoding.tsv
+  prioritized_variants_filename: prioritized_variants.tsv
+  validation_notes_filename: validation_notes.txt
   summary_report_filename: pipeline_summary.txt
+  summary_table_filename: prioritized_variant_summary.tsv
 
 metadata:
   write_metadata_json: true
