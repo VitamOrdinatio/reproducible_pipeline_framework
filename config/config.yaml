@@ -58,6 +58,10 @@ filtering:
     - frameshift
     - splice_site
 
+af_thresholds:
+  coding: 0.001
+  noncoding: 0.01
+
 outputs:
   write_interim_table: true
   write_processed_table: true
