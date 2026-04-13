@@ -1,432 +1,385 @@
-# Standard Operating Procedure (SOP) Pipeline Example 
-## Variant Discovery and Dual-Track Annotation Pipeline
-
-This SOP provides a concrete example of how the reproducible pipeline framework can be instantiated for a genomics variant discovery and annotation workflow. It is intentionally domain-specific and demonstrates the integration of sequencing data processing, variant annotation, and dual-track prioritization. This document should be used as a reference implementation and adapted as needed for other pipeline types (e.g., RNA-seq, database construction, or clinical harmonization), rather than copied verbatim.
+# SOP Pipeline Example  
+## Variant Discovery and Dual-Track Interpretation Pipeline  
+### reproducible_pipeline_framework v2
 
 ---
 
-# 0. Relationship to Pipeline Implementation
+## 1. Purpose
 
-This SOP describes a concrete pipeline implemented within the repository framework.
+This document defines the canonical example pipeline implemented in Version 2 of `reproducible_pipeline_framework`.
 
-Each procedural step maps directly to:
+The purpose of this example is to demonstrate how a reproducible, configuration-driven bioinformatics pipeline can process sequencing data from initial input through:
 
-- Pipeline modules → `pipeline/stage_*.py`  
-- Configuration → `config/config.yaml`  
-- Data directories → `data/raw`, `data/interim`, `data/processed`  
-- Outputs → `results/runs/`  
-- Logs and metadata → `results/runs/<run_id>/logs/`, `metadata.json`  
+- alignment
+- BAM processing
+- quality control
+- variant calling
+- variant normalization
+- annotation
+- dual-track interpretation
+- prioritization
+- validation preparation
+- summary reporting
 
-This document ensures that:
+This pipeline is designed as a **framework demonstration**, not a clinically validated diagnostic workflow.
 
-- execution is reproducible  
-- processing steps are traceable  
-- documentation reflects actual implementation  
+It is also intended to serve as the architectural precursor to the future `variant_annotation_pipeline` repository.
 
-Each pipeline stage receives and updates a shared `state` object, allowing data to be passed sequentially between stages without reliance on global variables or implicit dependencies.
+---
 
-### Step vs Stage Terminology
+## 2. Scope
 
-In this document:
+This SOP describes a 13-stage traditional genomics workflow that supports two execution modes:
 
-- **Steps** refer to conceptual pipeline operations described in the SOP.
-- **Stages** refer to concrete implementation units within the codebase.
+- `full_pipeline`
+  - FASTQ → BAM → VCF → annotation → prioritization
+- `annotation_only`
+  - VCF → normalization → annotation → prioritization
 
-Mapping:
+The current framework implementation is optimized for:
 
-- Each **Step N** corresponds directly to **Stage N** implemented as:
-  `pipeline/stage_NN_<name>.py`
+- toy/example data
+- local execution
+- explicit state tracking
+- staged artifact creation
+- reproducible output generation
+
+The current version uses lightweight or placeholder implementations for several tool-oriented steps so that the framework remains runnable and easy to inspect.
+
+---
+
+## 3. Inputs
+
+## 3.1 Full Pipeline Mode
+
+Input files:
+- paired FASTQ files
+
+Examples:
+- `data/example/example_R1.fastq`
+- `data/example/example_R2.fastq`
+
+These represent sequencing reads that enter the full pipeline workflow.
+
+---
+
+## 3.2 Annotation-Only Mode
+
+Input files:
+- VCF file
 
 Example:
-- Step 1 — Data Acquisition → `stage_01_load_data.py`
-- Step 2 — Alignment → `stage_02_align_data.py`
+- `data/example/example_variants.vcf`
 
-This distinction ensures that:
-- the SOP remains human-readable
-- the implementation remains modular and executable
+This mode bypasses alignment and variant calling and begins at VCF normalization.
 
 ---
-
-# 1. Purpose
-
-This pipeline identifies, annotates, and prioritizes genomic variants from sequencing data, supporting both coding and non-coding variant interpretation using classical bioinformatics and modern AI-based prediction tools.
-
-This pipeline performs end-to-end variant discovery, annotation, and prioritization.
-
-Pipeline Layering:
-`DATA → PROCESSING → ANNOTATION → FILTER/PARTITION → INTERPRET → VALIDATE`
-
-Primary Input:
-- FASTQ (full pipeline)
-
-Optional Input:
-- VCF (annotation-only mode)
-
-Output:
-- Annotated and filtered variant table
-- Summary report of prioritized variants
-
-Objective:
-- Transform raw variant calls into structured, annotated, and prioritized outputs suitable for downstream analysis or clinical review.
-
-This workflow reflects the core structure of pipelines used in:
-- clinical genomics
-- variant curation
-- molecular diagnostics
-
----
-
-# 2. Scope
-
-This SOP supports:
-
-- Whole Exome Sequencing (WES)
-- Whole Genome Sequencing (WGS) (GRCh38 assumed)
-- Small-scale variant datasets (single-sample or small cohort)
-- Local execution on a workstation
-
-This SOP includes:
-
-- Coding variant interpretation
-- Non-coding variant prioritization
-
-This SOP does NOT cover:
-
-- Joint genotyping workflows  
-- Structural variant discovery
-- Structural variant analysis  
-- Large-scale cohort processing  
-- Production-grade clinical validation  
-- Clinical reporting workflows
-
----
-
-# 3. Inputs
-
-## 3.1 Primary Data
-
-- FASTQ files (paired-end preferred)
-
-Example:
-
-`data/raw/example_NGS_WGS.fastq`
-
-## 3.2 Reference Data
-
-- Reference genome (e.g., GRCh38)
-- Annotation databases (RefSeq / Ensembl)
 
 ## 3.3 Metadata
 
-- Sample identifier  
-- Run parameters from configuration  
+Run metadata includes:
+- sample identifier
+- execution mode
+- reference genome
+- pipeline version
+- config path
+- run identifier
 
-## 3.4 Repository Mapping
-
-- Input path defined in `config/config.yaml`  
-- Raw data stored in `data/raw/`  
-
-## 3.5 Annotation Resources
-
-- gnomAD (primary AF)
-- ExAC (optional legacy AF)
-- 1000 Genomes (optional AF)
-- ClinVar
-- AlphaMissense (precomputed)
-- SpliceAI (precomputed or local)
-
-## 3.6 Optional Resources
-- AlphaGenome (API-based, optional)
+Repository mapping:
+- config → `config/config.yaml`
+- metadata → `results/runs/<run_id>/metadata.json`
 
 ---
 
-# 4. Outputs
+## 4. Outputs
 
-## 4.1 Intermediate
+## 4.1 Interim Outputs
 
-- BAM (sorted, indexed)
-- QC reports
+Examples:
+- aligned BAM
+- sorted BAM
+- BAM index
+- raw VCF
+- normalized VCF
 
-## 4.2 Final Outputs
-
-- VCF
-- annotated_variants.tsv
-- prioritized_variants.tsv
-
-## 4.3 QC Outputs
-
-- Variant counts before/after filtering  
-- Annotation completeness metrics  
-
-### 4.4 Repository Mapping
-
-- Interim data → `data/interim/`  
-- Processed data → `data/processed/`  
-- Final outputs → `results/runs/<run_id>/final/`  
-- Reports → `results/runs/<run_id>/reports/` 
+Repository mapping:
+- `data/interim/`
 
 ---
 
-# 5. Software and Environment
+## 4.2 Processed Outputs
 
-| Tool          | Purpose                                |
-|---------------|----------------------------------------|
-| Python        | Pipeline execution                     |
-| pandas        | Tabular data processing                |
-| BWA-MEM       | Read alignment                         |
-| samtools      | BAM processing and QC                  |
-| GATK          | Variant calling and VCF normalization  |
-| ANNOVAR       | Variant annotation                     |
-| IGV           | Manual read-level validation           |
-| AlphaMissense | Coding missense prioritization         |
-| SpliceAI      | Splice effect prediction               |
-| AlphaGenome   | Optional, API-based                    |
+Examples:
+- annotated VCF
+- annotated variant table
 
-## 5.1 Environment
-
-- OS: Linux (Pop!_OS)  
-- Execution: local workstation  
-- Dependencies: defined in `requirements.txt`  
-
-## 5.2 Repository Mapping
-
-- Dependencies → `requirements.txt`  
-- Runtime info → `metadata.json`  
+Repository mapping:
+- `data/processed/`
 
 ---
 
-# 6. Pipeline Overview
+## 4.3 Final Outputs
 
-## 6.1 Workflow:
+Examples:
+- filtered variants
+- coding-track table
+- non-coding-track table
+- interpreted coding variants
+- interpreted non-coding variants
+- prioritized variant table
 
-`FASTQ → BAM → QC → VCF → Annotation → Dual-Track Interpretation → Validation`
-
-## 6.2 Data Flow and State Management
-
-Data flows sequentially through pipeline stages using both:
-
-- explicit file outputs (interim and processed data)
-- an in-memory `state` object passed between stages
-
-This hybrid approach ensures:
-- reproducibility through persisted files
-- efficiency through in-memory data passing
-- clarity of stage dependencies
-
-## 6.3 Repository Mapping
-
-- Entry point → `run_pipeline.py`  
-- Orchestration → `src/pipeline_runner.py`  
+Repository mapping:
+- `results/runs/<run_id>/final/`
 
 ---
 
-# 7. Detailed Procedure
+## 4.4 Validation Outputs
 
-Each stage includes explicit QC checks to ensure data integrity before proceeding to downstream steps.
+Examples:
+- validation notes
+- IGV review candidate table
+
+Repository mapping:
+- `results/runs/<run_id>/validation/`
 
 ---
 
-### Step 1 — Data Acquisition — Load Sequencing Data
+## 4.5 Summary Outputs
+
+Examples:
+- pipeline summary report
+- prioritized variant summary table
+
+Repository mapping:
+- `results/runs/<run_id>/reports/`
+
+---
+
+## 5. Software and Environment
+
+This framework currently models the following tool classes:
+
+- BWA-MEM or equivalent for alignment
+- samtools for BAM processing and QC
+- GATK or equivalent for variant calling and normalization
+- ANNOVAR or equivalent for annotation
+- IGV for optional manual review
+
+The current framework implementation uses lightweight or placeholder logic for several of these steps so that the repository remains runnable without heavy external setup.
+
+Environment assumptions:
+- Linux workstation
+- Python-based execution
+- dependencies defined in `requirements.txt`
+- run entry point via `run_pipeline.py`
+
+---
+
+## 6. Pipeline Overview
+
+High-level workflow:
+
+`FASTQ → ALIGNMENT → BAM PROCESSING → QC → VARIANT CALLING → VCF NORMALIZATION → ANNOTATION → FILTERING / PARTITIONING → INTERPRETATION → PRIORITIZATION → VALIDATION PREP → SUMMARY`
+
+In annotation-only mode:
+
+`VCF → NORMALIZATION → ANNOTATION → FILTERING / PARTITIONING → INTERPRETATION → PRIORITIZATION → VALIDATION PREP → SUMMARY`
+
+Repository mapping:
+- entry point → `run_pipeline.py`
+- orchestration → `src/pipeline_runner.py`
+- stage modules → `pipeline/`
+
+---
+
+## 7. Detailed Procedure
+
+---
+
+### Step 1 — Load Data
 
 **Module:** `pipeline/stage_01_load_data.py`
 
+**Input:**
+- FASTQ pair in `full_pipeline`
+- VCF in `annotation_only`
+
 **Description:**
-- Load raw reads in FASTQ format
+- Validate mode-specific inputs
+- Record input metadata
+- Initialize state-aware input QC
 
 **Rationale:**
-- Load raw sequencing data in preparation for downstream structured transformations
-
-**Input:**
-- FASTQ
-
-**Output:**
-- validated FASTQ input path(s)
-- initialized sample context in state
+- Ensure correct entry conditions before execution
 
 **QC:**
-- file exists
-- FASTQ format is valid
-- file integrity check (e.g., checksum or read count sanity)
+- required files exist
+- file count recorded
+- mode confirmed
 
 ---
 
-### Step 2 — Alignment
+### Step 2 — Align Data
 
 **Module:** `pipeline/stage_02_align_data.py`
 
+**Input:**
+- FASTQ pair
+
+**Tool class:**
+- BWA-MEM or equivalent
+
 **Description:**
-- Align and map raw reads to a reference genome (e.g. GRCh38).
+- Align reads to the reference genome
+- Create aligned BAM artifact
 
 **Rationale:**
-- Mapping raw NGS reads onto a reference genome is critical for subsequent subsetting and variant calling.
-
-**Input:**
-- FASTQ
-
-**Tool:**
-- BWA-MEM
+- Map sequencing reads to genomic coordinates
 
 **Output:**
-- BAM
+- aligned BAM
 
 **QC:**
-- alignment completed successfully
-- BAM file created
-- mapping rate available
+- FASTQ read counts recorded
+- BAM artifact created
+- alignment state updated
 
 ---
 
-### Step 3 — BAM Processing
+### Step 3 — Process BAM
 
-**Module:** `pipeline/stage_03_process_BAM.py`
-
-**Description:**
-- Sort and index mapped reads.
-
-**Rationale:**
-- Sorting and indexing mapped reads into a structured format is required for downstream variant call and annotation functions.
+**Module:** `pipeline/stage_03_process_bam.py`
 
 **Input:**
-- BAM
+- aligned BAM
 
-**Tool:**
+**Tool class:**
 - samtools
 
-**Actions:**
+**Description:**
 - Sort BAM
 - Index BAM
 
+**Rationale:**
+- Prepare BAM for QC and downstream calling
+
 **Output:**
 - sorted BAM
-- BAI (BAM index file)
+- BAM index
 
 **QC:**
-- BAM sorting completed
-- BAM index created successfully
-- read counts preserved after sorting
+- sorted BAM exists
+- BAM index exists
+- processing summary recorded
 
 ---
 
-### Step 4 — Quality Control
+### Step 4 — QC Aligned Reads
 
-**Module:** `pipeline/stage_04_QC_aligned_reads.py`
-
-**Description:**
-- Obtain the summary stats of mapped reads
-
-**Rationale:**
-- Get number of mapped reads, duplication rates, and coverage estimates for a baseline understanding of sample QC.
+**Module:** `pipeline/stage_04_qc_aligned_reads.py`
 
 **Input:**
-- BAM
-- BAI
+- sorted BAM
+- BAM index
 
-**Tool:**
-- samtools flagstat
-- samtools stats
-- samtools idxstats
+**Tool class:**
+- samtools stats / flagstat or equivalent
+
+**Description:**
+- Generate alignment QC summary
+- Write QC report artifact
+
+**Rationale:**
+- Assess alignment readiness for calling
 
 **Output:**
+- aligned-read QC report
+
+**QC metrics:**
 - total reads
 - mapped reads
-- duplication (if available)
-
-**QC:**
-- flagstat/stats/idxstats completed successfully
-- mapped read summary recorded
-- coverage metrics recorded if available
+- mapping rate
+- BAM artifact presence
 
 ---
 
-### Step 5 — Variant Calling
+### Step 5 — Call Variants
 
 **Module:** `pipeline/stage_05_call_variants.py`
 
+**Input:**
+- sorted BAM
+- BAM index
+
+**Tool class:**
+- GATK HaplotypeCaller or equivalent
+
 **Description:**
-- Perform variant calling in a variant discovery layer.
+- Call sequence variants from processed BAM
 
 **Rationale:**
-- Execute GATK for variant calling to generate local haplotypes, generate local assembly, and call SNPs and indel polymorphisms.
-
-**Input:**
-- clean BAM
-
-**Tool:**
-- GATK HaplotypeCaller
-
-**Actions:**
-- Generate local haplotypes
-- Generate local assembly
-- Call SNP variants
-- Call indel variants
+- Identify deviations from the reference genome
 
 **Output:**
-- VCF
+- raw VCF
 
 **QC:**
 - VCF file generated successfully
-- Variant count recorded
-- No malformed records detected
+- variant count recorded
+- no malformed records detected
 
 ---
 
 ### Step 6 — VCF Normalization and Cleaning
 
-**Module:** `pipeline/stage_06_normalize_VCF.py`
-
-**Description:**
-- Separate noise from true biological variation  
-
-**Rationale:**
-- Ensure consistent representation for annotation  
+**Module:** `pipeline/stage_06_normalize_vcf.py`
 
 **Input:**
-- VCF
+- raw VCF in `full_pipeline`
+- input VCF in `annotation_only`
 
-**Tool:**
-- GATK
+**Tool class:**
+- GATK or equivalent
 
-**Actions:**
-- Normalize chromosome naming  
-- Remove malformed entries  
-- Standardize formats  
+**Description:**
+- Normalize chromosome naming
+- remove malformed entries
+- standardize variant representation
+
+**Rationale:**
+- Ensure consistent representation for annotation
 
 **Output:**
-- normalized VCF (data/interim/normalized.vcf)
+- normalized VCF
 
 **QC:**
 - normalized VCF created
 - malformed records removed or flagged
-- VCF format validated
+- normalized variant count recorded
 
 ---
 
-### Step 7 — Annotation (NO FILTERING)
+### Step 7 — Annotation (No Filtering)
 
 **Module:** `pipeline/stage_07_annotate_variants.py`
-
-**Description:**
-- Annotate discovered variants.
-
-**Rationale:**
-- Variants come in all forms and sizes and annotation provides biological meaning and clinical understanding.
 
 **Input:**
 - normalized VCF
 
-**Tools:**
-- ANNOVAR (biological meaning)
-- gnomAD (allele frequency, AF)
-- ExAC (allele frequency, AF)
-- 1000 Genomes (allele frequency, AF)
-- HGMD (optional; subscription-based)
-- ClinVar (clinical consensus regarding variant and disease)
+**Tool classes / resources:**
+- ANNOVAR or equivalent
+- gnomAD
+- ExAC
+- 1000 Genomes
+- ClinVar
+- AlphaMissense
+- SpliceAI
 
-**Actions:**
-- obtain molecular biological context for variants (ANNOVAR)
-- retrieve allele frequency annotations from gnomAD, ExAC, and 1000 Genomes
-- get evidence of prior variant pathogenicity in literature (HGMD)
-- get clinical consensus regarding variant pathogenicity (ClinVar)
+**Description:**
+- Add biological, population-frequency, clinical, and AI-style annotation fields
+
+**Rationale:**
+- Enrich variants with interpretation-relevant context
 
 **Output:**
 - annotated VCF
@@ -440,34 +393,29 @@ Each stage includes explicit QC checks to ensure data integrity before proceedin
 - required annotation fields present
 - annotation completeness metrics recorded
 
-#### Annotation Types:
+#### Annotation Types
 
 ##### Structural / Functional
-
-- Gene name
-- Variant type (missense, nonsense, intronic, intergenic)
-- Protein change
+- gene symbol
+- consequence
+- variant class
 
 ##### Population Frequency
-
-- AF_gnomAD
-- AF_ExAC
-- AF_1KGenomes
+- `AF_gnomAD`
+- `AF_ExAC`
+- `AF_1KGenomes`
 
 ##### Clinical Annotation
+- `ClinVar_classification`
 
-- ClinVar classification
-
-##### AI-Based Annotation (CORE)
-
-- AlphaMissense_score (for missense variants)
-- SpliceAI_score (for splice-relevant variants)
+##### AI-Based Annotation
+- `AlphaMissense_score` for missense variants
+- `SpliceAI_score` for splice-relevant variants
 
 ##### Variant Classification Field
+- `variant_type = {coding, non-coding}`
 
-- Variant_Type = {coding, non-coding}
-
-### IMPORTANT PRINCIPLE
+### Important Principle
 
 No variants are removed at this stage.
 
@@ -479,26 +427,41 @@ Annotation adds information; it does not filter variants.
 
 **Module:** `pipeline/stage_08_filter_and_partition.py`
 
-**Actions:**
-- Remove variants with high AF (threshold depends on disease model)
-- Apply AF filtering using thresholds defined in config/config.yaml
-- Thresholds are configurable per run and may differ for coding vs non-coding variants.
-- Partition remaining variants into:
-    - coding (track A)
-    - non-coding (track B)
+**Input:**
+- annotated variant table
 
-Variants are separated into:
+**Description:**
+- Remove variants with high allele frequency
+- Apply AF thresholds from `config/config.yaml`
+- Partition retained variants into:
+  - coding track
+  - non-coding track
+
+**Rationale:**
+- Separate broad annotation from track-specific interpretation logic
+
+**Output:**
+- filtered variant table
+- coding-track table
+- non-coding-track table
+
+**QC:**
+- filtered count recorded
+- coding count recorded
+- non-coding count recorded
 
 #### Track A — Coding Variants
+Examples:
 - missense
 - nonsense
 - frameshift
-- splice-site
+- splice_site
 
 #### Track B — Non-Coding Variants
+Examples:
 - intronic
 - intergenic
-- regulatory regions
+- regulatory
 
 ---
 
@@ -506,15 +469,26 @@ Variants are separated into:
 
 **Module:** `pipeline/stage_09_interpret_coding.py`
 
-#### Evidence Integration
-- ClinVar (primary)
-- AlphaMissense (functional support)
-- SpliceAI (if near exon boundary)
+**Input:**
+- coding-track table
 
-#### Interpretation Logic
-- Rare + damaging → prioritize
-- Known pathogenic → prioritize
-- VUS → consider AI support
+**Evidence integration:**
+- ClinVar
+- AlphaMissense
+- SpliceAI where relevant
+
+**Interpretation logic:**
+- rare + damaging → prioritize
+- known or likely pathogenic → prioritize
+- VUS with AI support → intermediate priority
+
+**Output:**
+- interpreted coding table
+
+**QC:**
+- coding variant count recorded
+- coding gene count recorded
+- interpretation class counts recorded
 
 ---
 
@@ -522,25 +496,31 @@ Variants are separated into:
 
 **Module:** `pipeline/stage_10_interpret_noncoding.py`
 
-#### Evidence Integration
-- Limited ClinVar signal expected
-- SpliceAI (if splice-relevant)
+**Input:**
+- non-coding-track table
 
-#### AI-Based Prioritization
-AlphaGenome (OPTIONAL; applied only to prioritized non-coding or VUS candidate variants)
+**Evidence integration:**
+- SpliceAI
+- limited ClinVar signal
+- optional AlphaGenome-style logic
 
-AlphaGenome is treated as an external or API-based dependency and is not required for core pipeline execution.
+**Interpretation logic:**
+- splice-relevant non-coding candidates → prioritize
+- regulatory candidates → prioritize conditionally
+- lower-confidence non-coding variants → lower priority
 
-Used for:
-- regulatory disruption
-- expression changes
-- chromatin effects
+**Output:**
+- interpreted non-coding table
 
----
+**QC:**
+- non-coding variant count recorded
+- non-coding gene count recorded
+- interpretation class counts recorded
 
-### IMPORTANT PRINCIPLE
+### Important Principle
 
-`AlphaGenome is applied selectively to high-priority non-coding or VUS variants only.`
+AlphaGenome-style support is optional and selective.  
+It is not required for the current framework demonstration.
 
 ---
 
@@ -549,38 +529,73 @@ Used for:
 **Module:** `pipeline/stage_11_prioritize_variants.py`
 
 **Input:**
-- interpreted coding-track table
-- interpreted non-coding-track table
+- interpreted coding table
+- interpreted non-coding table
 
-Combine all evidence:
+**Description:**
+- Combine both tracks
+- assign final cross-track ranking
+- write unified prioritized variant table
 
-Priority score considers:
+**Priority score considers:**
+- rarity
+- functional consequence
+- clinical evidence
+- coding interpretation rank
+- non-coding interpretation rank
+- splice-related support
 
-- rarity (gnomAD, 1000 Genomes, ExAC)
-- functional impact (ANNOVAR)
-- clinical evidence (ClinVar)
-- AlphaMissense (coding)
-- SpliceAI (splice)
-- AlphaGenome (non-coding / optional)
+**Output:**
+- prioritized variant table
+
+**QC:**
+- prioritized variant count recorded
+- prioritized gene count recorded
+- track counts recorded
 
 ---
 
-### Step 12 — Validation
+### Step 12 — Validation Preparation for Manual IGV Review
 
 **Module:** `pipeline/stage_12_validate_variants.py`
 
-Tool:
-- IGV
+**Input:**
+- prioritized variant table
+- upstream BAM/VCF-derived context from earlier stages
 
-Validate:
+**Tool class:**
+- IGV is used as a downstream manual review tool
+
+**Description:**
+- Perform automated validation pre-checks
+- generate validation notes
+- generate a candidate table for optional manual IGV review
+
+**Rationale:**
+- Separate automated pipeline validation from analyst-driven visual review
+
+**Output:**
+- validation notes
+- IGV review candidate list
+
+**QC:**
+- candidate count recorded
+- warnings recorded
+- validation outputs created successfully
+
+### Important Clarification
+
+IGV review is **not automated by the pipeline**.
+
+Instead, the pipeline prepares a structured handoff for optional human inspection of:
 - read depth
 - allele balance
 - strand bias
-- alignment artifacts
+- local alignment artifacts
 
 ---
 
-### Step 13 — Generate Reports
+### Step 13 — Generate Summary Reports
 
 **Module:** `pipeline/stage_13_write_summary.py`
 
@@ -588,143 +603,160 @@ Validate:
 - prioritized variant table
 - QC summaries
 - annotation summary
-- prioritization summary
-- validation summary (if available)
+- validation summary
+- artifact registry
+- stage output summaries
 
 **Description:**
-- Generate summary outputs:
-  - variant table  
-  - counts  
-  - simple report  
+- Generate human-readable summary report
+- generate compact machine-readable summary table
 
 **Rationale:**
-- Provide human-readable results  
+- Provide a reproducible run summary for inspection, debugging, and reuse
 
-**QC:**
-- Output files exist  
-- Formatting is correct  
+**Output:**
+- pipeline summary report
+- prioritized variant summary table
 
 **Output Location:**
 - `results/runs/<run_id>/reports/`
 
----
-
-# 8. Biological Interpretation
-
-Interpret variants in context of:
-
-- gene function (e.g., POLG)
-- domain location (NTD vs CTD)
-- inheritance model (dominant vs recessive)
-- penetrance considerations
-
-Variants are interpreted based on:
-
-- gene association  
-- predicted functional consequence  
-- annotation fields  
-
-Example:
-- high-impact variants prioritized  
-- gene-level grouping performed  
-
-Note:
-This pipeline uses simplified annotation logic for demonstration.
-
-Interpretation prioritizes variants based on predicted functional impact and gene-level relevance.
+**QC:**
+- summary files exist
+- artifact completeness recorded
+- warnings and errors included in report
 
 ---
 
-# 9. Assumptions
+## 8. Biological Interpretation
 
-- Reference genome is accurate
-- Sequencing quality sufficient
-- Annotation databases up-to-date
-- Dataset size is manageable locally  
+Variants are interpreted in the context of:
+
+- gene function
+- predicted functional consequence
+- coding vs non-coding classification
+- population frequency
+- clinical annotation
+- AI-derived support scores where available
+
+Coding variants are generally prioritized using:
+- ClinVar
+- functional consequence
+- AlphaMissense
+- SpliceAI where applicable
+
+Non-coding variants are generally prioritized using:
+- splice relevance
+- regulatory classification
+- optional AI-style support
+- rarity
+
+This framework uses simplified interpretation logic for demonstration purposes.
 
 ---
 
-# 10. Limitations
+## 9. Assumptions
 
-- WES may miss regulatory variants
-- Non-coding interpretation remains uncertain
-- AI predictions are probabilistic, not definitive
-- No structural variant support  
-- Not clinically validated  
-
-This pipeline is intended for demonstration and development purposes, not clinical deployment.
+- reference genome is accurate
+- sequencing quality is sufficient
+- annotation sources are representative
+- toy dataset size is appropriate for local execution
+- manual IGV review, when used, is performed by the user outside the automated pipeline
 
 ---
 
-# 11. Reproducibility
+## 10. Limitations
+
+- placeholder logic is used for several tool-oriented stages
+- no structural variant support
+- non-coding interpretation remains simplified
+- AI support is illustrative, not definitive
+- not clinically validated
+- IGV review is not automated
+
+This pipeline is intended for framework demonstration and development, not clinical deployment.
+
+---
+
+## 11. Reproducibility
 
 Reproducibility is ensured by:
 
-- configuration-driven execution  
-- config snapshot saved per run  
-- metadata tracking  
-- structured output directories 
+- configuration-driven execution
+- explicit stage modules
+- state-based orchestration
+- config snapshot saved per run
+- metadata tracking
+- structured run directories
+- deterministic artifact generation for example data
 
-## Repository Mapping
-- Config snapshot → `results/runs/<run_id>/config_used.yaml`  
-- Metadata → `results/runs/<run_id>/metadata.json`  
+### Repository Mapping
+- config snapshot → `results/runs/<run_id>/config_used.yaml`
+- metadata → `results/runs/<run_id>/metadata.json`
+- logs → `results/runs/<run_id>/logs/pipeline.log`
 
-Each run directory is self-contained and sufficient to reproduce results independently.
+Each run directory is intended to function as a self-contained record of execution.
 
 ---
 
-# 12. Logging
+## 12. Logging and Traceability
 
 Each run produces:
 
-- pipeline log file  
-- execution trace  
-- metadata record  
+- pipeline log file
+- execution trace
+- metadata record
+- stage-specific outputs
+- validation preparation artifacts
+- final summary artifacts
 
-## Repository Mapping
-- Logs → `results/runs/<run_id>/logs/pipeline.log`  
+All major pipeline events are recorded in the pipeline log.
 
-All major pipeline events (stage start, completion, and errors) are recorded in the pipeline log.
-
----
-
-# 13. Future Extensions
-
-
-- Integrate additional annotation tools (VEP)  
-- Incorporate OMIM
-- Incorporate HGMD for population frequency filtering (currently HGMD is optional; subscription-based)
-- Expand to cohort-level analysis  
-- Enable database integration
-- Improve regulatory annotation
-- Add structural variant detection
+Stage boundaries are explicit and traceable through:
+- `state`
+- artifact paths
+- stage summaries
+- run directories
 
 ---
 
-# 14. Final Conceptual Model
+## 13. Future Extensions
+
+Potential improvements include:
+
+- integrate real external tools directly
+- add richer cohort-level support
+- incorporate OMIM and HGMD where appropriate
+- add structural variant support
+- improve regulatory annotation
+- expand manual-review integration support
+- add integration tests and formal validation harnesses
+
+---
+
+## 14. Final Conceptual Model
 
 Workflow:
 
-`DATA → PROCESSING → ANNOTATION → PARTITION → INTERPRETATION → VALIDATION`
+`DATA → PROCESSING → ANNOTATION → PARTITION → INTERPRETATION → PRIORITIZATION → VALIDATION PREP → REPORTING`
 
 Handling coding variants:
 
-`Coding variants: ClinVar + AlphaMissense + SpliceAI`
+`Coding variants = ClinVar + consequence + AlphaMissense + SpliceAI`
 
 Handling non-coding variants:
 
-`Non-coding variants: SpliceAI + AlphaGenome (optional)`
+`Non-coding variants = rarity + SpliceAI + regulatory logic + optional AlphaGenome-style support`
 
 ---
 
-# 15. State Object Contract
+## 15. State Object Contract
 
 Each pipeline stage receives a shared `state` object and returns an updated `state` object.
 
 The purpose of the `state` object is to provide a single, explicit, traceable record of pipeline execution without relying on global variables or implicit dependencies.
 
-### The `state` object stores:
-
+The `state` object stores:
 - run metadata
 - configuration values
 - sample metadata
@@ -733,70 +765,26 @@ The purpose of the `state` object is to provide a single, explicit, traceable re
 - annotation metadata
 - track-specific outputs
 - prioritization outputs
-- validation targets
-- log paths
+- validation outputs
+- report paths
 - warnings and errors
 
 ### Design Principles
 
-1. The `state` object should be serializable.
-2. The `state` object should prefer file paths over large in-memory payloads.
-3. Each stage should read only the keys it requires and write only the keys it produces.
-4. Missing required keys should cause a clear failure with explicit error logging.
-5. Large artifacts such as FASTQ, BAM, and VCF files should be persisted to disk and referenced in `state` by path.
-6. The `state` object should support both:
-   - full-pipeline mode (FASTQ → BAM → VCF → annotation → prioritization)
-   - annotation-only mode (VCF input)
+1. The `state` object is serializable.
+2. The `state` object prefers file paths over large in-memory payloads.
+3. Each stage reads only the keys it requires and writes only the keys it produces.
+4. Missing required keys should cause clear failure with explicit error logging.
+5. Large artifacts such as FASTQ, BAM, and VCF are persisted to disk and referenced in `state` by path.
+6. The `state` object supports both:
+   - `full_pipeline`
+   - `annotation_only`
 
-### Typical Contents of `state`
+---
 
-Examples of information expected in `state` include:
+## 16. Stage Read/Write Contract
 
-- `run_id`
-- execution mode
-- sample identifier
-- input FASTQ path(s)
-- input VCF path (if annotation-only mode)
-- aligned BAM path
-- sorted BAM path
-- BAM index path
-- raw VCF path
-- normalized VCF path
-- annotated variant table path
-- coding-track table path
-- non-coding-track table path
-- prioritized variant table path
-- summary report path
-- QC summaries
-- annotation resources used
-- validation candidate list
-- pipeline log path
-- warnings
-- errors
-
-### Stage Behavior
-
-Each stage should:
-
-- validate that required `state` keys are present before execution
-- perform its assigned transformation or analysis
-- update `state` with newly created outputs, summaries, and metadata
-- record any warnings or errors in a consistent location
-
-### Reproducibility Rule
-
-The `state` object should function as a compact execution record.
-
-In general:
-
-- metadata, paths, summaries, warnings, and errors belong in `state`
-- large data artifacts belong on disk
-
-This design ensures that the pipeline remains reproducible, debuggable, and easy to bind to concrete pipeline modules.
-
-# 16. Stage Read/Write Contract
-
-Each pipeline stage must declare, either explicitly in code or implicitly through implementation structure:
+Each stage must declare, explicitly or through implementation structure:
 
 - required inputs from `state`
 - outputs written back to `state`
@@ -804,265 +792,11 @@ Each pipeline stage must declare, either explicitly in code or implicitly throug
 - QC summaries produced
 - warnings or errors generated
 
-This contract ensures that stage boundaries are explicit and that pipeline execution remains traceable and reproducible.
+This contract ensures:
+- stage boundaries remain explicit
+- pipeline execution remains traceable
+- downstream repos can inherit the same execution philosophy
 
 ---
 
-### General Rule
-
-For every stage:
-
-- read only the keys required for execution
-- write only the keys produced by that stage
-- fail clearly if required inputs are missing
-- record file paths rather than large data objects whenever possible
-
----
-
-### Stage 1 — Data Acquisition
-
-**Reads from `state`:**
-- configuration values
-- input FASTQ path(s) OR input VCF path (annotation-only mode)
-
-**Writes to `state`:**
-- sample metadata
-- validated input file paths
-- FASTQ QC summary
-- execution mode confirmation
-
-**Files created on disk:**
-- none required
-
----
-
-### Stage 2 — Alignment
-
-**Reads from `state`:**
-- input FASTQ path(s)
-- reference genome path
-- run configuration
-
-**Writes to `state`:**
-- aligned BAM path
-- alignment QC summary
-
-**Files created on disk:**
-- aligned BAM
-
----
-
-### Stage 3 — BAM Processing
-
-**Reads from `state`:**
-- aligned BAM path
-
-**Writes to `state`:**
-- sorted BAM path
-- BAM index path
-- BAM processing QC summary
-
-**Files created on disk:**
-- sorted BAM
-- BAM index (`.bai`)
-
----
-
-### Stage 4 — Quality Control
-
-**Reads from `state`:**
-- sorted BAM path
-- BAM index path
-
-**Writes to `state`:**
-- read count summary
-- mapping summary
-- duplication summary (if available)
-- coverage summary (if available)
-
-**Files created on disk:**
-- QC report files
-
----
-
-### Stage 5 — Variant Calling
-
-**Reads from `state`:**
-- sorted BAM path
-- BAM index path
-- reference genome path
-
-**Writes to `state`:**
-- raw VCF path
-- variant calling summary
-- raw variant count
-
-**Files created on disk:**
-- raw VCF
-
----
-
-### Stage 6 — VCF Normalization and Cleaning
-
-**Reads from `state`:**
-- raw VCF path
-
-**Writes to `state`:**
-- normalized VCF path
-- VCF normalization summary
-- normalized variant count
-- VCF format validation result
-
-**Files created on disk:**
-- normalized VCF
-
----
-
-### Stage 7 — Annotation
-
-**Reads from `state`:**
-- normalized VCF path
-- annotation resource configuration
-
-**Writes to `state`:**
-- annotated VCF path
-- annotated variant table path
-- annotation summary
-- list of annotation resources used
-- annotation completeness metrics
-
-**Files created on disk:**
-- annotated VCF
-- annotated variant table
-
----
-
-### Stage 8 — Global Filtering and Partitioning
-
-**Reads from `state`:**
-- annotated variant table path
-- AF threshold configuration
-
-**Writes to `state`:**
-- filtered variant count summary
-- coding-track table path
-- non-coding-track table path
-- coding/non-coding partition counts
-
-**Files created on disk:**
-- coding-track table
-- non-coding-track table
-
----
-
-### Stage 9 — Interpretation (Coding Track)
-
-**Reads from `state`:**
-- coding-track table path
-
-**Writes to `state`:**
-- interpreted coding-track table path
-- coding-track prioritization summary
-- coding-track warnings
-
-**Files created on disk:**
-- interpreted coding-track table
-
----
-
-### Stage 10 — Interpretation (Non-Coding Track)
-
-**Reads from `state`:**
-- non-coding-track table path
-- AlphaGenome availability flag (if optional step enabled)
-
-**Writes to `state`:**
-- interpreted non-coding-track table path
-- non-coding-track prioritization summary
-- AlphaGenome usage metadata (if used)
-- non-coding-track warnings
-
-**Files created on disk:**
-- interpreted non-coding-track table
-- optional AlphaGenome output files
-
----
-
-### Stage 11 — Variant Prioritization
-
-**Reads from `state`:**
-- interpreted coding-track table path
-- interpreted non-coding-track table path
-
-**Writes to `state`:**
-- prioritized variant table path
-- prioritization summary
-- top candidate list
-
-**Files created on disk:**
-- prioritized variant table
-
----
-
-### Stage 12 — Validation
-
-**Reads from `state`:**
-- prioritized variant table path
-- sorted BAM path
-- BAM index path
-
-**Writes to `state`:**
-- validation candidate list
-- IGV review targets
-- validation notes path (if created)
-
-**Files created on disk:**
-- optional validation notes file
-
----
-
-### Stage 13 — Report Generation
-
-**Reads from `state`:**
-- prioritized variant table path
-- QC summaries
-- annotation summaries
-- prioritization summary
-- validation summary
-
-**Writes to `state`:**
-- summary report path
-- final run status
-- end time
-
-**Files created on disk:**
-- summary report
-- final metadata snapshot (optional)
-
----
-
-### Error Handling Rule
-
-If a stage cannot find a required input in `state`, it must:
-
-1. record the failure in pipeline logs
-2. append a clear error message to the error section of `state`
-3. stop execution or fail the stage explicitly
-
----
-
-### Implementation Note
-
-This contract defines stage responsibilities, not internal code style.
-
-SWE may implement the `state` object as:
-- a nested dictionary
-- a dataclass
-- a pydantic model
-
-As long as:
-- required keys are explicit
-- stage boundaries are preserved
-- serialization and reproducibility are maintained
-
-# End of SOP
+# End of SOP Pipeline Example

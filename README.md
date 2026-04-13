@@ -1,157 +1,208 @@
-# Reproducible Pipeline Framework
+# reproducible_pipeline_framework
 
-## Overview
+A modular, reproducible pipeline framework for genomics data analysis.
 
-This repository implements a modular, configuration-driven framework for building reproducible scientific data pipelines.
+This repository implements a 13-stage example workflow demonstrating how to structure a reproducible bioinformatics pipeline with:
 
-The purpose of this project is not to solve a single biological problem, but to define a **generalizable architecture** for:
+- explicit state tracking
+- modular stage execution
+- clear artifact management
+- deterministic outputs for toy data
+- traceable execution metadata
 
-- organizing computational workflows  
-- enforcing reproducibility  
-- separating configuration from execution  
-- standardizing data flow across pipeline stages  
-
-This framework is designed to support downstream projects in:
-
-- variant annotation  
-- RNA-seq analysis  
-- rare disease gene prioritization  
-- clinical data harmonization  
-
-This repository includes a fully operational demonstration pipeline that can be executed end-to-end.
+This framework is intended as a template and scaffold for building real pipelines such as `variant_annotation_pipeline`.
 
 ---
 
-## Key Features
+## What This Repository Is
 
-- Configuration-driven execution (YAML-based)
-- Modular stage-based pipeline design
-- Strict separation of code, data, and outputs
-- Run-specific output directories
-- Automatic logging and metadata tracking
-- Reproducible execution with config snapshots
-- Minimal dependency footprint
+- A runnable example pipeline
+- A scaffold for real analysis workflows
+- A demonstration of reproducible pipeline architecture
 
----
+## What This Repository Is Not
 
-## Working Example Pipeline
-
-This repository includes a fully operational six-stage demonstration pipeline.
-
-Each stage operates on a shared state object, enabling explicit data flow between stages without reliance on global variables.
-
-### Pipeline Stages
-
-1. Load Data  
-2. Validate Data  
-3. Clean Data  
-4. Transform / Annotate Data  
-5. Analyze / Prioritize Variants  
-6. Write Summary Outputs  
+- Not a clinical pipeline
+- Not production-grade variant interpretation
+- Not a replacement for real variant annotation tools
 
 ---
 
-## Repository Structure
+## Pipeline Overview
 
-    reproducible_pipeline_framework/
-    ├── config/
-    │   └── config.yaml
-    ├── data/
-    │   ├── example/
-    │   ├── interim/
-    │   ├── processed/
-    │   └── raw/
-    ├── docs/
-    ├── pipeline/
-    ├── src/
-    ├── results/
-    │   └── runs/
-    ├── run_pipeline.py
-    ├── requirements.txt
-    └── README.md
+The pipeline supports two execution modes:
 
----
+### Full Pipeline Mode
 
-## Quick Start
+```
+FASTQ → Alignment → BAM Processing → QC → Variant Calling
+     → VCF Normalization → Annotation → Filtering/Partitioning
+     → Interpretation → Prioritization → Validation Prep → Summary
+```
 
-From the repository root:
+### Annotation-Only Mode
 
-### Create virtual environment
-
-    python3 -m venv .venv
-    source .venv/bin/activate
-
-### Install dependencies
-
-    pip install -r requirements.txt
-
-### Run pipeline
-
-    python run_pipeline.py --config config/config.yaml
+```
+VCF → Normalization → Annotation → Filtering/Partitioning
+    → Interpretation → Prioritization → Validation Prep → Summary
+```
 
 ---
 
-## Pipeline Execution Flow
+## Pipeline Stages
 
-VCF → Load → Validate → Clean → Annotate → Filter → Report
-
----
-
-## Example Outputs
-
-Each run generates:
-
-    results/runs/run_YYYY_MM_DD_HHMMSS/
-
-Including:
-
-- logs/pipeline.log  
-- metadata.json  
-- config_used.yaml  
-- final/prioritized_variants.tsv  
-- reports/pipeline_summary.txt  
+| Stage | Description |
+|------|-------------|
+| 01 | Load Data |
+| 02 | Align Reads |
+| 03 | Process BAM |
+| 04 | QC Aligned Reads |
+| 05 | Call Variants |
+| 06 | Normalize VCF |
+| 07 | Annotate Variants |
+| 08 | Filter & Partition |
+| 09 | Interpret Coding Variants |
+| 10 | Interpret Non-coding Variants |
+| 11 | Prioritize Variants |
+| 12 | Prepare for IGV Review |
+| 13 | Write Summary Reports |
 
 ---
 
-## Reproducibility Model
+## IGV and Validation
 
-Each run directory contains all artifacts required to reproduce the analysis independently.
+This pipeline does **not** automate IGV.
 
-- configuration-driven  
-- fully logged  
-- self-contained  
-- reproducible  
+Instead:
 
----
-
-## Design Philosophy
-
-- Explicit over implicit  
-- Configuration over hardcoding  
-- Modular over monolithic  
-- Reproducible over ad hoc  
+- Stage 12 performs automated validation checks
+- A review candidate list is generated
+- Optional manual inspection is expected to occur outside the pipeline
 
 ---
 
-## Current Status
+## Running the Pipeline
 
-Version 1 comprises:
+### Requirements
 
-- a complete scaffold  
-- a working six-stage pipeline  
-- a reproducible execution state  
+- Python 3.9+
+- Linux or WSL environment recommended
+- Dependencies listed in `requirements.txt`
 
-Version 1 is fully operational and supports end-to-end execution of the demonstration pipeline.
+### Setup
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Run
+
+```bash
+python run_pipeline.py --config config/config.yaml
+```
 
 ---
 
-## Notes
+## Outputs
 
-- Placeholder annotation logic  
-- Not for clinical use  
+Each run produces a self-contained run directory:
+
+```
+results/runs/<run_id>/
+├── final/
+├── validation/
+├── reports/
+├── logs/
+└── metadata.json
+```
+
+---
+
+## Configuration
+
+All execution behavior is controlled via:
+
+```
+config/config.yaml
+```
+
+This includes:
+
+- execution mode
+- input locations
+- reference genome
+- filtering thresholds
+- output locations
+
+---
+
+## State Tracking
+
+All pipeline stages read from and write to a shared `state` object.
+
+The state object tracks:
+
+- inputs
+- outputs
+- QC metrics
+- artifacts
+- warnings
+- errors
+- run metadata
+
+The formal state contract is documented in:
+
+```
+docs/state_contract_v2.md
+```
+
+---
+
+## Architecture
+
+Key components:
+
+- `run_pipeline.py` — entry point
+- `src/pipeline_runner.py` — orchestration
+- `pipeline/` — individual stages
+- `src/path_manager.py` — path resolution
+- `src/logger.py` — structured logging
+- `docs/` — documentation and SOP
+
+Full architecture is documented in:
+
+```
+docs/architecture.md
+```
+
+---
+
+## Intended Use
+
+This repository is designed to:
+
+- demonstrate reproducible pipeline design
+- provide a foundation for downstream repositories
+- serve as a portfolio-grade example of pipeline engineering
+
+---
+
+## Future Extensions
+
+- integration of real bioinformatics tools
+- cohort-level analysis
+- structural variant support
+- richer QC and validation layers
+- formal schema validation
 
 ---
 
 ## License
 
-See LICENSE file
+See `LICENSE`.
+
+---
+
+# End of README

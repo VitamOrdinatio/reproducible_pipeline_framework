@@ -1,197 +1,97 @@
-# Architecture — reproducible_pipeline_framework
+# Architecture  
+## reproducible_pipeline_framework v2
 
 ---
 
-## 1. Repository Role
+## 1. Purpose
 
-This repository provides a reusable framework for building **reproducible computational pipelines**, with emphasis on:
+This document describes the software architecture of
+`reproducible_pipeline_framework` Version 2.
 
-- configuration-driven execution  
-- modular pipeline stages  
-- structured logging  
-- run metadata capture  
-- standardized directory structure  
-- traceable and reproducible outputs  
+It explains:
 
-This is an **infrastructure repository**, not a domain-specific analysis project.
+- project layout
+- execution model
+- state and data flow
+- stage orchestration
+- artifact management
+- design principles
 
-It defines the **engineering patterns** that downstream repositories will follow, including:
-
-- rnaseq_pipeline  
-- variant_annotation_pipeline  
-- rare_disease_gene_prioritization  
-- picu_harmonization  
-- variant_database (partial adoption)  
-
-This repository defines the baseline engineering standard for all downstream computational workflows in the portfolio.
+This architecture is designed to be modular, reproducible, and extensible,
+and serves as the foundation for downstream pipeline repositories.
 
 ---
 
-## 2. Architectural Goal (Version 1)
+## 2. Design Goals
 
-Version 1 should demonstrate a **minimal, fully reproducible pipeline** that:
+The architecture is built around the following principles:
 
-1. Executes via CLI using a configuration file  
-2. Uses modular, function-based pipeline stages  
-3. Creates a unique run directory for each execution  
-4. Captures logs and metadata per run  
-5. Preserves configuration used for execution  
-6. Produces structured intermediate and final outputs  
-7. Demonstrates SOP → code → output alignment  
+- reproducibility
+- modularity
+- explicit data contracts
+- transparent execution
+- auditability
+- extensibility
 
-The goal is **clarity and reproducibility**, not feature completeness.
+Key design goals:
 
----
-
-## 3. Current Scaffold (Observed)
-
-The current repository scaffold includes:
-
-- `data/`
-  - `raw/`
-  - `interim/`
-  - `processed/`
-- `docs/`
-- `environment/`
-- `results/`
-  - `tables/`
-  - `figures/`
-- `scripts/`
-- `src/`
-- `tests/`
-
-This is a strong base but requires **specialization for pipeline framework behavior**.
+- make data flow explicit
+- avoid hidden state
+- separate orchestration from stage logic
+- allow incremental development
+- support future pipeline repos
 
 ---
 
-## 4. Required Structural Additions
+## 3. Repository Structure
 
-To support pipeline execution, the following must be added:
-
-### New directories
-- `config/`  
-- `pipeline/`  
-- `results/runs/`  
-
-### New files
-- `run_pipeline.py`  
-- `requirements.txt`  
-- optional: `Makefile`  
-
-These additions introduce:
-- configuration layer  
-- execution layer  
-- stage modularization  
-- run-level reproducibility  
-
----
-
-## 5. Final Repository Structure (Adjusted)
-```
+```text
 reproducible_pipeline_framework/
-├── README.md
-├── LICENSE
-├── run_pipeline.py
-├── requirements.txt
-├── Makefile
-│
 ├── config/
 │   └── config.yaml
 │
 ├── data/
-│   ├── raw/
+│   ├── example/
 │   ├── interim/
 │   ├── processed/
-│   └── example/
+│   └── raw/
 │
 ├── docs/
-│   ├── architecture.md
-│   ├── conventions.md
-│   ├── data_schema.md
-│   ├── example_pipeline.md
-│   ├── notes.md
-│   ├── QC_template.md
-│   ├── roadmap.md
 │   ├── SOP_pipeline_example.md
-│   ├── SOP_template.md
-│   └── workflow.md
-│
-├── environment/
-│   └── README.md
+│   ├── state_contract_v2.md
+│   ├── workflow.md
+│   ├── architecture.md
+│   └── ...
 │
 ├── pipeline/
 │   ├── stage_01_load_data.py
-│   ├── stage_02_validate_data.py
-│   ├── stage_03_clean_data.py
-│   ├── stage_04_transform_data.py
-│   ├── stage_05_analyze_data.py
-│   └── stage_06_write_summary.py
+│   ├── stage_02_align_data.py
+│   ├── ...
+│   └── stage_13_write_summary.py
 │
 ├── results/
 │   ├── runs/
 │   ├── tables/
 │   └── figures/
 │
-├── scripts/
-│   ├── validation/
-│   └── README.md
-│
 ├── src/
-│   ├── __init__.py
 │   ├── config_loader.py
-│   ├── file_utils.py
+│   ├── path_manager.py
+│   ├── pipeline_runner.py
 │   ├── logger.py
 │   ├── metadata.py
-│   ├── path_manager.py
-│   └── pipeline_runner.py
+│   └── ...
 │
-└── tests/
-    ├── unit/
-    ├── integration/
-    ├── validation/
-    └── README.md
+├── tests/
+├── run_pipeline.py
+└── requirements.txt
 ```
 
 ---
 
-## 6. Architectural Layers
+## 4. Execution Entry Point
 
-This repository is organized into three logical layers:
-
-### 6.1 Framework Layer (`src/`)
-
-Responsible for:
-
-- configuration loading  
-- path resolution  
-- logging  
-- metadata tracking  
-- pipeline orchestration  
-
-### 6.2 Pipeline Layer (`pipeline/`)
-
-Contains:
-
-- stage modules  
-- domain-specific logic  
-- sequential execution steps  
-
-Each stage should perform **one logically distinct transformation step** and be independently testable.
-
-### 6.3 Documentation and SOP Layer (`docs/`)
-
-Defines:
-
-- architecture  
-- SOP templates  
-- workflow explanations  
-- conventions and standards  
-
----
-
-## 7. Execution Model
-
-Pipeline execution:
+The pipeline is executed via:
 
 ```bash
 python run_pipeline.py --config config/config.yaml
@@ -199,237 +99,229 @@ python run_pipeline.py --config config/config.yaml
 
 Execution flow:
 
-1. Parse CLI arguments
-2. Load config
-3. Create run directory
-4. Initialize logger
-5. Save config snapshot
-6. Execute pipeline stages
-7. Write outputs
-8. Generate metadata
-9. Exit with success or failure
+1. configuration is loaded
+2. paths are initialized
+3. run metadata is created
+4. state object is initialized
+5. stages are executed sequentially
+6. outputs and metadata are written
 
 ---
 
-## 8. Run Directory Design
+## 5. Orchestration Layer
 
-Each run produces an isolated output directory:
+The orchestration layer lives in:
 
-```text
-results/runs/run_YYYY_MM_DD_HHMMSS/
-├── logs/
-│   └── pipeline.log
-├── interim/
-├── final/
-├── reports/
-├── metadata.json
-└── config_used.yaml
-```
+- `src/pipeline_runner.py`
 
-Key principles:
+Responsibilities:
 
-- Never overwrite previous runs
-- Each run is independently reproducible
+- determine execution mode
+- manage stage execution order
+- pass `state` between stages
+- capture errors and warnings
+- ensure run completion and metadata persistence
 
-`results/runs/` is the authoritative location for execution outputs, while `results/tables/` and `results/figures/` are reserved for curated summaries.
-
-Each run directory is self-contained and sufficient to reproduce results independently.
+The orchestration layer does not perform analysis logic.
 
 ---
 
-## 9. Configuration System
+## 6. Stage Model
 
-Configuration is YAML-based:
+Each stage is implemented as:
 
-`config/config.yaml`
-
-Defines:
-
-- input paths
-- output locations
-- pipeline parameters
-- stage toggles
-- logging settings
-
-Pipeline behavior must be driven by configuration, not hard-coded values.
-
----
-
-## 10. Function-Based Stage Design
-
-Each stage module exposes a function:
+- one Python module
+- a single entry function:
 
 ```python
-def run_stage(config, paths, logger, state):
-    return updated_state
+def run_stage(config, paths, logger, state) -> dict
 ```
 
-Inputs:
+Each stage:
 
-- config → runtime parameters
-- paths → resolved directories
-- logger → logging object
-- state → shared data between stages
+- receives the shared state
+- reads required inputs
+- performs computation
+- writes outputs to disk
+- updates `state`
 
-Output:
-
-- updated state dictionary
-
-This design ensures:
-
-- simplicity
-- testability
-- transparency
-- modular reuse
+Stages do not directly call each other.
 
 ---
 
-## 11. Pipeline Stages (Example)
+## 7. State and Data Flow
 
-| Stage     | Module                     |
-| --------- | -------------------------- |
-| Load data | stage_01_load_data.py      |
-| Validate  | stage_02_validate_data.py  |
-| Clean     | stage_03_clean_data.py     |
-| Transform | stage_04_transform_data.py |
-| Analyze   | stage_05_analyze_data.py   |
-| Summarize | stage_06_write_summary.py  |
+The `state` object is the single source of truth for pipeline execution.
 
+It tracks:
 
----
+- inputs
+- artifacts
+- QC metrics
+- stage outputs
+- warnings and errors
+- run metadata
 
-## 12. Data Flow
+The state contract is defined in:
 
-Standard flow:
-`data/raw → data/interim → data/processed → results/runs/ → results/tables`
-
-Raw data is never overwritten.
+- `docs/state_contract_v2.md`
 
 ---
 
-## 13. Logging Strategy
+## 8. Data Persistence Strategy
 
-Logging is required for reproducibility.
+Large data objects are never stored in memory inside `state`.
 
-Each run generates:
+Instead:
 
-- pipeline log file
-- stage execution logs
-- error tracking
+- data are written to disk
+- file paths are stored in `state`
 
-Location:
+Examples:
+
+- BAM files
+- VCF files
+- TSV tables
+- QC reports
+
+This enables:
+
+- reproducibility
+- memory efficiency
+- restart and inspection
+
+---
+
+## 9. Directory Strategy
+
+Outputs are organized into run-specific directories:
+
 ```text
-results/runs/<run_id>/logs/pipeline.log
+results/
+  runs/
+    <run_id>/
+      final/
+      validation/
+      reports/
+      logs/
+      metadata.json
 ```
 
----
+This ensures:
 
-## 14. Metadata Strategy
-
-Each run generates:
-
-`metadata.json`
-
-Includes:
-
-- run ID
-- timestamps
-- config used
-- pipeline version
-- stage status
-- success/failure
+- run isolation
+- auditability
+- reproducibility
 
 ---
 
-## 15. SOP Integration
+## 10. Execution Modes
 
-The SOP system maps directly to the architecture:
+### Full Pipeline Mode
 
-| SOP Section     | Implementation           |
-| --------------- | ------------------------ |
-| Inputs          | config + data/raw        |
-| Outputs         | data/processed + results |
-| Procedure       | pipeline/stage_*.py      |
-| Logging         | logs/                    |
-| Reproducibility | config + metadata        |
-| QC              | scripts/validation       |
+Used when FASTQ input is provided.
 
-SOP is not documentation only — it reflects execution.
+Pipeline executes:
 
----
-
-## 16. Testing Strategy
-
-Testing structure:
-
-- unit → individual modules
-- integration → full pipeline run
-- validation → output correctness
-
-Tests should verify:
-
-- pipeline runs end-to-end
-- outputs exist
-- logs exist
-- metadata exists
-
-Tests should be runnable via a single command (e.g., `pytest`).
+- alignment
+- BAM processing
+- QC
+- variant calling
+- downstream interpretation
 
 ---
 
-## 17. Design Constraints
+### Annotation-Only Mode
 
-Version 1 must intentionally avoid:
+Used when a VCF is provided.
 
-- workflow engines (Snakemake, Nextflow)
-- DAG scheduling
-- checkpoint restart systems
-- container-first complexity
-- HPC integration
-- database-backed run tracking
+Pipeline skips:
 
-These are deferred to future versions.
+- alignment
+- BAM processing
+- variant calling
 
----
+And begins at:
 
-## 18. Risks and Cautions
-
-Primary risks:
-
-- overengineering too early
-- mixing framework and pipeline logic
-- duplicating logs across locations
-- breaking separation of raw/interim/processed data
-- allowing SOP to drift from implementation
+- VCF normalization
 
 ---
 
-## 19. Definition of Version 1 Success
+## 11. Automation vs Manual Boundaries
 
-Version 1 is complete when:
+### Automated
 
-- pipeline runs from CLI
-- config controls execution
-- stages are modular
-- run directories are created
-- logs are generated
-- metadata is captured
-- outputs are structured
-- SOP maps cleanly to implementation
-- repository is understandable to external reviewers
+- alignment
+- BAM processing
+- QC
+- variant calling
+- normalization
+- annotation
+- filtering
+- interpretation
+- prioritization
+- validation preparation
+- summary reporting
+
+---
+
+### Manual
+
+- IGV-based review
+- biological interpretation decisions
+
+Manual review is explicitly outside the automated pipeline.
 
 ---
 
-## 20. Final Summary
+## 12. Error Handling
 
-This repository defines a minimal, reproducible pipeline architecture based on:
-
-- configuration-driven execution
-- modular functional stages
-- structured run outputs
-- logging and metadata
-- SOP-aligned documentation
-
-It serves as the engineering foundation for all future pipeline repositories in the portfolio.
+- errors are captured and logged
+- failures are surfaced via `state["errors"]`
+- pipeline halts on unrecoverable errors
+- partial results remain available for inspection
 
 ---
+
+## 13. Extensibility
+
+This framework is designed to:
+
+- support additional pipelines
+- allow replacement of mock stages with real tools
+- integrate richer QC and validation
+- support clinical-grade workflows in downstream repos
+
+---
+
+## 14. Relationship to Downstream Pipelines
+
+This repository provides:
+
+- execution scaffolding
+- state management
+- stage orchestration patterns
+
+Downstream pipelines (e.g. `variant_annotation_pipeline`) are expected to:
+
+- reuse this architecture
+- replace placeholder logic with real tools
+- extend stages with domain-specific logic
+
+---
+
+## 15. Summary
+
+This architecture emphasizes:
+
+- explicit data flow
+- modularity
+- reproducibility
+- transparency
+- extensibility
+
+It provides a foundation for robust, inspectable, and scalable bioinformatics pipelines.
+
+---
+
+# End of Architecture Document
