@@ -5,7 +5,7 @@ This SOP provides a concrete example of how the reproducible pipeline framework 
 
 ---
 
-## 0. Relationship to Pipeline Implementation
+# 0. Relationship to Pipeline Implementation
 
 This SOP describes a concrete pipeline implemented within the repository framework.
 
@@ -167,7 +167,7 @@ Example:
 
 ---
 
-## 5. Software and Environment
+# 5. Software and Environment
 
 | Tool          | Purpose                                |
 |---------------|----------------------------------------|
@@ -182,26 +182,26 @@ Example:
 | SpliceAI      | Splice effect prediction               |
 | AlphaGenome   | Optional, API-based                    |
 
-### 5.1 Environment
+## 5.1 Environment
 
 - OS: Linux (Pop!_OS)  
 - Execution: local workstation  
 - Dependencies: defined in `requirements.txt`  
 
-### 5.2 Repository Mapping
+## 5.2 Repository Mapping
 
 - Dependencies → `requirements.txt`  
 - Runtime info → `metadata.json`  
 
 ---
 
-## 6. Pipeline Overview
+# 6. Pipeline Overview
 
-### 6.1 Workflow:
+## 6.1 Workflow:
 
 `FASTQ → BAM → QC → VCF → Annotation → Dual-Track Interpretation → Validation`
 
-### 6.2 Data Flow and State Management
+## 6.2 Data Flow and State Management
 
 Data flows sequentially through pipeline stages using both:
 
@@ -213,14 +213,14 @@ This hybrid approach ensures:
 - efficiency through in-memory data passing
 - clarity of stage dependencies
 
-### 6.3 Repository Mapping
+## 6.3 Repository Mapping
 
 - Entry point → `run_pipeline.py`  
 - Orchestration → `src/pipeline_runner.py`  
 
 ---
 
-## 7. Detailed Procedure
+# 7. Detailed Procedure
 
 Each stage includes explicit QC checks to ensure data integrity before proceeding to downstream steps.
 
@@ -529,6 +529,8 @@ Variants are separated into:
 #### AI-Based Prioritization
 AlphaGenome (OPTIONAL; applied only to prioritized non-coding or VUS candidate variants)
 
+AlphaGenome is treated as an external or API-based dependency and is not required for core pipeline execution.
+
 Used for:
 - regulatory disruption
 - expression changes
@@ -607,7 +609,7 @@ Validate:
 
 ---
 
-## 8. Biological Interpretation
+# 8. Biological Interpretation
 
 Interpret variants in context of:
 
@@ -633,7 +635,7 @@ Interpretation prioritizes variants based on predicted functional impact and gen
 
 ---
 
-## 9. Assumptions
+# 9. Assumptions
 
 - Reference genome is accurate
 - Sequencing quality sufficient
@@ -642,7 +644,7 @@ Interpretation prioritizes variants based on predicted functional impact and gen
 
 ---
 
-## 10. Limitations
+# 10. Limitations
 
 - WES may miss regulatory variants
 - Non-coding interpretation remains uncertain
@@ -654,7 +656,7 @@ This pipeline is intended for demonstration and development purposes, not clinic
 
 ---
 
-## 11. Reproducibility
+# 11. Reproducibility
 
 Reproducibility is ensured by:
 
@@ -663,7 +665,7 @@ Reproducibility is ensured by:
 - metadata tracking  
 - structured output directories 
 
-### Repository Mapping
+## Repository Mapping
 - Config snapshot → `results/runs/<run_id>/config_used.yaml`  
 - Metadata → `results/runs/<run_id>/metadata.json`  
 
@@ -671,7 +673,7 @@ Each run directory is self-contained and sufficient to reproduce results indepen
 
 ---
 
-## 12. Logging
+# 12. Logging
 
 Each run produces:
 
@@ -679,14 +681,14 @@ Each run produces:
 - execution trace  
 - metadata record  
 
-### Repository Mapping
+## Repository Mapping
 - Logs → `results/runs/<run_id>/logs/pipeline.log`  
 
 All major pipeline events (stage start, completion, and errors) are recorded in the pipeline log.
 
 ---
 
-## 13. Future Extensions
+# 13. Future Extensions
 
 
 - Integrate additional annotation tools (VEP)  
@@ -699,7 +701,7 @@ All major pipeline events (stage start, completion, and errors) are recorded in 
 
 ---
 
-## 14. Final Conceptual Model
+# 14. Final Conceptual Model
 
 Workflow:
 
@@ -715,7 +717,7 @@ Handling non-coding variants:
 
 ---
 
-## 15. State Object Contract
+# 15. State Object Contract
 
 Each pipeline stage receives a shared `state` object and returns an updated `state` object.
 
@@ -792,7 +794,7 @@ In general:
 
 This design ensures that the pipeline remains reproducible, debuggable, and easy to bind to concrete pipeline modules.
 
-## 16. Stage Read/Write Contract
+# 16. Stage Read/Write Contract
 
 Each pipeline stage must declare, either explicitly in code or implicitly through implementation structure:
 
