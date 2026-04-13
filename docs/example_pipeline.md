@@ -1,78 +1,116 @@
-# Example Pipeline
+# Example Pipeline  
+## reproducible_pipeline_framework v2
 
-This document describes a simple example pipeline using the reproducible pipeline framework.
+This document demonstrates a minimal end-to-end example run of the v2 pipeline using the provided toy dataset.
 
-## Example Problem
+The goal is to illustrate:
 
-We want to:
+- how to run the pipeline
+- what files are consumed and produced
+- how stage outputs flow through the system
+- how artifacts and results are organized
 
-1. Read an input table
-2. Validate required columns
-3. Filter rows based on criteria
-4. Write a processed output table
-5. Generate a summary report
-
----
-
-## Pipeline Steps
-
-### Step 1 — Validate Input
-Check that the input file contains required columns.
-
-Input:
-- data/raw/input.tsv
-
-Output:
-- data/interim/validated_input.tsv
+This example uses the built-in toy FASTQ files.
 
 ---
 
-### Step 2 — Filter Data
-Apply filtering rules to remove unwanted rows.
+## 1. Inputs
 
-Input:
-- data/interim/validated_input.tsv
+The example run uses the following input files:
 
-Output:
-- data/processed/filtered_data.tsv
+```
+data/example/example_R1.fastq
+data/example/example_R2.fastq
+```
 
----
+These represent paired-end sequencing reads for a toy sample.
 
-### Step 3 — Generate Summary
-Produce a summary table describing the processed data.
-
-Input:
-- data/processed/filtered_data.tsv
-
-Output:
-- results/tables/summary.tsv
+The pipeline is executed in `full_pipeline` mode.
 
 ---
 
-## Example Pipeline Flow
-data/raw/input.tsv
-↓
-validate_input
-↓
-data/interim/validated_input.tsv
-↓
-filter_data
-↓
-data/processed/filtered_data.tsv
-↓
-generate_summary
-↓
-results/tables/summary.tsv
+## 2. Running the Pipeline
 
+Activate the environment:
+
+```bash
+source .venv/bin/activate
+```
+
+Run the pipeline:
+
+```bash
+python run_pipeline.py --config config/config.yaml
+```
 
 ---
 
-## Key Ideas Demonstrated
+## 3. Execution Flow
 
-This toy pipeline demonstrates:
+The following stages are executed:
 
-- Stepwise processing
-- Separation of raw, interim, and processed data
-- Clear input/output relationships
-- Reproducible execution order
-- Organized results
+1. Load Data
+2. Align Reads
+3. Process BAM
+4. QC Aligned Reads
+5. Call Variants
+6. Normalize VCF
+7. Annotate Variants
+8. Filter and Partition
+9. Interpret Coding Variants
+10. Interpret Non-Coding Variants
+11. Prioritize Variants
+12. Prepare for IGV Review
+13. Write Summary Reports
+
+---
+
+## 4. Key Artifacts Produced
+
+### Interim Outputs
+
+```
+data/interim/aligned.bam
+data/interim/aligned.sorted.bam
+data/interim/aligned.sorted.bam.bai
+data/interim/raw_variants.vcf
+data/interim/normalized_variants.vcf
+```
+
+### Processed Outputs
+
+```
+data/processed/annotated_variants.vcf
+data/processed/annotated_variants.tsv
+```
+
+### Final Results
+
+```
+results/runs/<run_id>/final/
+results/runs/<run_id>/validation/
+results/runs/<run_id>/reports/
+results/runs/<run_id>/logs/
+```
+
+---
+
+## 5. Manual Review (Optional)
+
+Stage 12 prepares a candidate list for optional manual IGV review.
+
+IGV is not run automatically.
+
+---
+
+## 6. Summary
+
+This example demonstrates:
+
+- staged execution
+- explicit artifact creation
+- reproducible state tracking
+- separation of automation and manual review
+- end-to-end run using toy data
+
+This is a demonstration pipeline intended as a scaffold for downstream, domain-specific pipelines.

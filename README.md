@@ -28,6 +28,23 @@ This framework is intended as a template and scaffold for building real pipeline
 
 ---
 
+## Example Data Included
+
+This repository includes small toy datasets so the pipeline can be run end-to-end:
+
+```
+data/example/example_R1.fastq
+data/example/example_R2.fastq
+data/example/example_variants.vcf
+```
+
+These files enable:
+
+- full pipeline execution (FASTQ-based)
+- annotation-only execution (VCF-based)
+
+---
+
 ## Pipeline Overview
 
 The pipeline supports two execution modes:
@@ -45,6 +62,12 @@ FASTQ → Alignment → BAM Processing → QC → Variant Calling
 ```
 VCF → Normalization → Annotation → Filtering/Partitioning
     → Interpretation → Prioritization → Validation Prep → Summary
+```
+
+Execution mode is controlled via:
+
+```
+config/config.yaml
 ```
 
 ---
@@ -103,6 +126,12 @@ pip install -r requirements.txt
 python run_pipeline.py --config config/config.yaml
 ```
 
+To switch execution mode, edit:
+
+```
+config/config.yaml
+```
+
 ---
 
 ## Outputs
@@ -117,24 +146,6 @@ results/runs/<run_id>/
 ├── logs/
 └── metadata.json
 ```
-
----
-
-## Configuration
-
-All execution behavior is controlled via:
-
-```
-config/config.yaml
-```
-
-This includes:
-
-- execution mode
-- input locations
-- reference genome
-- filtering thresholds
-- output locations
 
 ---
 
@@ -186,6 +197,8 @@ This repository is designed to:
 - demonstrate reproducible pipeline design
 - provide a foundation for downstream repositories
 - serve as a portfolio-grade example of pipeline engineering
+
+This is a **framework repository**, not an analysis pipeline or clinical tool.
 
 ---
 

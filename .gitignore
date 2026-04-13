@@ -4,7 +4,6 @@ data/interim/*
 data/processed/*
 !data/example/
 !data/example/**
-docs/SOP_pipeline_example_traditional_pipe.md
 
 results/runs/*
 
