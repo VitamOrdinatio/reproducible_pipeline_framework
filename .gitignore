@@ -1,3 +1,8 @@
+# Local machine configs:
+config/config.sys76.local.yaml
+config/config.mark.local.yaml
+config/*.local.yaml
+
 # --- Pipeline-specific ignores ---
 data/raw/*
 data/interim/*
